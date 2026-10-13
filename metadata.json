@@ -1,0 +1,6 @@
+{
+  "name": "Moeez_Portfolio",
+  "description": "Futuristic digital agency & creator portfolio specializing in AI websites, intelligent voice calling agents, cinematic 3D product visuals, AI advertising, and workflow automation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
