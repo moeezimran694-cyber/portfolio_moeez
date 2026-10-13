@@ -21,7 +21,7 @@ export const PROJECTS_DATA: Project[] = [
     tagline: 'Modern High-Performance Fitness Platform',
     category: 'Websites',
     status: 'Concept Project',
-    image: '/src/assets/images/project_gym_website_1791821870661.jpg',
+    image: '/assets/images/project_gym_website_1791821870661.jpg',
     shortDescription: 'Modern fitness club website with membership tiers, trainer profiles, trial-session booking, and responsive dark-mode layouts.',
     fullDescription: 'Designed and developed as a complete digital presence for a boutique fitness center. Features structured membership tiers, dynamic trainer rosters, interactive session booking calculators, and mobile-optimized responsiveness built for high conversion.',
     tools: ['React', 'TypeScript', 'Tailwind CSS', 'Framer Motion'],
@@ -40,7 +40,7 @@ export const PROJECTS_DATA: Project[] = [
     tagline: 'Intelligent Inbound & Appointment Calling Agent',
     category: 'AI Automation',
     status: 'Interactive Prototype',
-    image: '/src/assets/images/project_voice_agent_1791821882727.jpg',
+    image: '/assets/images/project_voice_agent_1791821882727.jpg',
     shortDescription: 'Interactive demonstration of an AI customer support and automated appointment scheduling assistant with real-time audio telemetry.',
     fullDescription: 'An autonomous voice agent engineered to handle incoming business inquiries, qualify potential customers, answer common service questions, and schedule consultations onto calendar software without human staff intervention.',
     tools: ['Web Audio API', 'Speech Synthesis', 'Node.js', 'WebSocket', 'LLM Function Calling'],
@@ -59,7 +59,7 @@ export const PROJECTS_DATA: Project[] = [
     tagline: 'Cinematic Blender 3D Product Commercial',
     category: '3D Products',
     status: 'Demo Project',
-    image: '/src/assets/images/project_3d_product_1791821856558.jpg',
+    image: '/assets/images/project_3d_product_1791821856558.jpg',
     shortDescription: 'Cinematic Blender 3D commercial visual featuring dark titanium finishes, vibrant violet/cyan rim illumination, and studio materials.',
     fullDescription: 'High-end 3D advertisement visual created in Blender for a luxury cyber audio device. Employs micro-scratched matte metal shaders, translucent polycarbonate speaker grilles, and dual-tone neon rim lighting tuned for premium digital marketing campaigns.',
     tools: ['Blender 3D', 'Cycles X Renderer', 'Substance Painter', 'DaVinci Resolve'],
@@ -78,7 +78,7 @@ export const PROJECTS_DATA: Project[] = [
     tagline: 'Futuristic Visual Identity & Social Ad Suite',
     category: 'Graphic Design',
     status: 'Demo Project',
-    image: '/src/assets/images/project_video_ad_1791821892937.jpg', // fallback high-res graphic asset
+    image: '/assets/images/project_video_ad_1791821892937.jpg', // fallback high-res graphic asset
     shortDescription: 'Cohesive brand creative system including high-impact digital advertising banners, promotional event posters, and typographic marks.',
     fullDescription: 'A multi-asset visual marketing package crafted for high-growth tech brands. Features typographic hierarchy systems, social media carousels, event launch graphics, and promotional display ads designed for immediate visual retention.',
     tools: ['Adobe Illustrator', 'Adobe Photoshop', 'Figma', 'Grid Systems'],
@@ -97,7 +97,7 @@ export const PROJECTS_DATA: Project[] = [
     tagline: 'AI-Assisted High-Impact Commercial Reel',
     category: 'Video Ads',
     status: 'Concept Project',
-    image: '/src/assets/images/project_video_ad_1791821892937.jpg',
+    image: '/assets/images/project_video_ad_1791821892937.jpg',
     shortDescription: 'Short commercial video advertisement combining generative AI visual pacing, atmospheric studio lighting, and dynamic motion.',
     fullDescription: 'A 30-second commercial concept developed using generative video workflows alongside professional color grading and sound design. Demonstrates how modern brands can produce cinematic promotional reels in a fraction of traditional production schedules.',
     tools: ['Runway Gen-3', 'Premiere Pro', 'After Effects', 'ElevenLabs Audio'],
@@ -116,7 +116,7 @@ export const PROJECTS_DATA: Project[] = [
     tagline: 'Autonomous Workflow & CRM Automation Dashboard',
     category: 'AI Automation',
     status: 'Interactive Prototype',
-    image: '/src/assets/images/project_voice_agent_1791821882727.jpg', // or dashboard visual
+    image: '/assets/images/project_voice_agent_1791821882727.jpg', // or dashboard visual
     shortDescription: 'Clean web dashboard demonstrating automated lead qualification, webhook routing, AI classification, and multi-channel notifications.',
     fullDescription: 'A workflow automation web app that ingests customer leads across multiple platforms, enriches lead data using AI classification models, scores purchase intent, and triggers immediate webhook actions to sales teams.',
     tools: ['React', 'TypeScript', 'Tailwind CSS', 'REST Webhooks', 'Chart UI'],

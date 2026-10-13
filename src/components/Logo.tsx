@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../assets/images/logo.png';
 
 interface LogoProps {
   className?: string;
@@ -33,9 +34,12 @@ export const Logo: React.FC<LogoProps> = ({
         {/* Logo Container */}
         <div className="relative w-full h-full rounded-xl overflow-hidden border border-cyan-500/30 bg-[#070b16] p-0.5 shadow-[0_0_15px_rgba(6,182,255,0.2)]">
           <img
-            src="/src/assets/images/logo.png"
+            src={logoImg}
             alt="Moeez_Portfolio Logo"
             className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = '/logo.png';
+            }}
           />
         </div>
       </div>
