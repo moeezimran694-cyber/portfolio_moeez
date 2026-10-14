@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { ServicesSection } from './components/ServicesSection';
@@ -12,6 +12,8 @@ import { AboutSection } from './components/AboutSection';
 import { ContactSection, ContactSectionHandle } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { ScrollProgressBar } from './components/ScrollProgressBar';
+import { ControlPanelModal } from './components/ControlPanelModal';
+import { Project, PROJECTS_DATA } from './data/projectsData';
 import { motion, type Variants } from 'motion/react';
 
 const sectionContainerVariants: Variants = {
@@ -28,6 +30,56 @@ const sectionContainerVariants: Variants = {
 
 export default function App() {
   const contactRef = useRef<ContactSectionHandle>(null);
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const saved = localStorage.getItem('moeez_real_projects_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return PROJECTS_DATA;
+  });
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const res = await fetch('/api/projects');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.projects)) {
+        setProjects(data.projects);
+        localStorage.setItem('moeez_real_projects_list', JSON.stringify(data.projects));
+        return;
+      }
+    } catch {
+      // fallback
+    }
+    const saved = localStorage.getItem('moeez_real_projects_list');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setProjects(parsed);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  // Keyboard shortcut: Ctrl + Shift + A to open Control Panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setIsControlPanelOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -57,10 +109,11 @@ export default function App() {
       {/* Top thin reading scroll progress bar */}
       <ScrollProgressBar />
 
-      {/* Sleek sticky navigation */}
+      {/* Sleek sticky navigation with owner control panel entry */}
       <Navbar
         onNavigate={scrollToSection}
         onOpenContact={() => scrollToSection('contact')}
+        onOpenControlPanel={() => setIsControlPanelOpen(true)}
       />
 
       {/* Main Content Sections with Framer Motion Entrance Animations */}
@@ -94,7 +147,11 @@ export default function App() {
           viewport={{ once: true, margin: '-80px' }}
           variants={sectionContainerVariants}
         >
-          <ProjectsSection onDiscussProject={handleDiscussProject} />
+          <ProjectsSection 
+            projects={projects}
+            onDiscussProject={handleDiscussProject}
+            onOpenControlPanel={() => setIsControlPanelOpen(true)}
+          />
         </motion.div>
 
         {/* About Section Container */}
@@ -118,8 +175,19 @@ export default function App() {
         </motion.div>
       </main>
 
-      {/* Elegant dark footer */}
-      <Footer onNavigate={scrollToSection} />
+      {/* Elegant dark footer with Control Panel access */}
+      <Footer 
+        onNavigate={scrollToSection} 
+        onOpenControlPanel={() => setIsControlPanelOpen(true)}
+      />
+
+      {/* Owner Protected Control Panel (Password: moeezimran786) */}
+      <ControlPanelModal
+        isOpen={isControlPanelOpen}
+        onClose={() => setIsControlPanelOpen(false)}
+        projects={projects}
+        onRefreshProjects={fetchProjects}
+      />
     </div>
   );
 }

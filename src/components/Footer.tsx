@@ -1,13 +1,14 @@
 import React from 'react';
 import { Logo } from './Logo';
-import { ArrowUp, Heart, Mail, MessageSquare } from 'lucide-react';
+import { ArrowUp, Heart, Mail, MessageSquare, Lock } from 'lucide-react';
 import { SITE_CONFIG } from '../data/config';
 
 interface FooterProps {
   onNavigate?: (sectionId: string) => void;
+  onOpenControlPanel?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenControlPanel }) => {
   const currentYear = new Date().getFullYear();
 
   const handleLinkClick = (id: string, e: React.MouseEvent) => {
@@ -75,6 +76,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <div className="space-y-2 text-xs">
               <a
                 href={SITE_CONFIG.socials.email}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 text-slate-400 hover:text-cyan-300 transition-colors"
               >
                 <Mail className="w-3.5 h-3.5 text-purple-400" />
@@ -115,9 +118,23 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             © {currentYear} <strong className="text-slate-300 font-medium">Moeez_Portfolio</strong>. All rights reserved.
           </div>
 
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <span>Built with passion & precision for international excellence</span>
-            <Heart className="w-3 h-3 text-purple-400 fill-purple-400/40 inline" />
+          <div className="flex flex-wrap items-center gap-4 text-slate-400">
+            {onOpenControlPanel && (
+              <button
+                type="button"
+                onClick={onOpenControlPanel}
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                title="Control Panel (Owner Access)"
+              >
+                <Lock className="w-3.5 h-3.5 text-purple-400" />
+                <span>Control Panel</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              <span>Built with passion & precision for international excellence</span>
+              <Heart className="w-3 h-3 text-purple-400 fill-purple-400/40 inline" />
+            </div>
           </div>
         </div>
 

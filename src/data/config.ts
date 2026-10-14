@@ -7,7 +7,8 @@ export const SITE_CONFIG = {
   contactEmail: 'moeezi396@gmail.com',
   // Direct communication channels
   socials: {
-    email: 'mailto:moeezi396@gmail.com?subject=Project%20Inquiry%20-%20Moeez_Portfolio&body=Hi%20Moeez,%0D%0A%0D%0AI%20would%20like%20to%20discuss%20a%20new%20project%20with%20you.%0D%0A%0D%0AService%20Needed:%20%0D%0AEstimated%20Budget:%20%0D%0AProject%20Details:%20%0D%0A%0D%0ABest%20regards,',
+    email: 'https://mail.google.com/mail/?view=cm&fs=1&to=moeezi396@gmail.com&su=Project%20Inquiry%20-%20Moeez_Portfolio&body=Hi%20Moeez,%0A%0AI%20would%20like%20to%20discuss%20a%20new%20project%20with%20you.%0A%0AService%20Needed:%20%0AEstimated%20Budget:%20%0AProject%20Details:%20%0A%0ABest%20regards,',
+    mailto: 'mailto:moeezi396@gmail.com?subject=Project%20Inquiry%20-%20Moeez_Portfolio',
     whatsapp: 'https://wa.me/923184498716?text=Hi%20Moeez,%20I%20would%20like%20to%20discuss%20a%20project%20with%20you.',
     whatsappNumber: '+92 318 4498716',
     linkedin: 'https://www.linkedin.com/in/',

@@ -3,7 +3,7 @@ import { ArrowRight, Lightbulb, Wrench, Users, BookOpen } from 'lucide-react';
 import { SITE_CONFIG } from '../data/config';
 import { motion } from 'motion/react';
 
-import aboutImg from '../assets/images/about_workstation_1791821903064.jpg';
+import aboutImg from '../assets/images/about_profile_moeez.png';
 
 interface AboutSectionProps {
   onDiscussProject: () => void;
@@ -64,10 +64,10 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ onDiscussProject }) 
             <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-2xl">
               <img
                 src={aboutImg}
-                alt="Creative development workstation with purple and cyan ambient lighting"
+                alt="Moeez Digital Studio & Engineering Lab"
                 loading="lazy"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/assets/images/about_workstation_1791821903064.jpg';
+                  (e.currentTarget as HTMLImageElement).src = 'https://cdn.phototourl.com/member/2026-10-14-9a129575-d0be-40ba-a59c-28fa3a4a2b79.png';
                 }}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"

@@ -1,7 +1,8 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { Send, Mail, Copy, Check, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Send, Mail, Copy, Check, AlertCircle, ArrowUpRight, MessageSquare, CheckCircle } from 'lucide-react';
 import { SITE_CONFIG } from '../data/config';
 import { motion } from 'motion/react';
+import { ClientInboxModal } from './ClientInboxModal';
 
 export interface ContactSectionHandle {
   prefillService: (serviceName: string) => void;
@@ -20,6 +21,8 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'prepared'>('idle');
+  const [isClientInboxOpen, setIsClientInboxOpen] = useState(false);
+  const [clientInboxEmail, setClientInboxEmail] = useState('');
 
   useImperativeHandle(ref, () => ({
     prefillService: (serviceName: string) => {
@@ -180,6 +183,8 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
                     <span className="text-[11px] font-mono text-slate-400 block uppercase">Direct Inquiries</span>
                     <a
                       href={SITE_CONFIG.socials.email}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-sm font-semibold text-cyan-300 hover:text-white transition-colors"
                     >
                       {SITE_CONFIG.contactEmail}
@@ -194,6 +199,8 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
                 <div className="flex flex-col gap-2">
                   <a
                     href={SITE_CONFIG.socials.email}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 hover:bg-slate-900 border border-slate-800/80 text-xs text-slate-300 hover:text-white transition-colors"
                   >
                     <span>Email ({SITE_CONFIG.contactEmail})</span>
@@ -211,6 +218,18 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
                       <ArrowUpRight className="w-3.5 h-3.5 text-cyan-400" />
                     </a>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsClientInboxOpen(true)}
+                    className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-purple-950/40 to-slate-900/60 hover:bg-slate-900 border border-purple-500/30 text-xs text-cyan-300 hover:text-white transition-colors cursor-pointer w-full text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Client Inbox (View Moeez's Replies)</span>
+                    </div>
+                    <ArrowUpRight className="w-3.5 h-3.5 text-cyan-400" />
+                  </button>
                 </div>
               </div>
 
@@ -237,19 +256,33 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
               {submissionStatus === 'saved' && (
                 <div className="mb-6 p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex items-start gap-3">
                   <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                  <div className="text-xs text-slate-200">
+                  <div className="text-xs text-slate-200 flex-1">
                     <p className="font-semibold text-white">Inquiry & Custom Budget Received Online!</p>
-                    <p className="text-slate-300 mt-0.5">
-                      Your project inquiry has been securely stored. Moeez will review your custom quote and reach out within 24 business hours.
+                    <p className="text-slate-300 mt-0.5 leading-relaxed">
+                      Your inquiry has been sent straight to Moeez's Admin Panel. A private conversation thread has been opened for your email.
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyInquiry}
-                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/80 text-white font-semibold text-xs hover:bg-emerald-500 cursor-pointer"
-                    >
-                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copied ? 'Copied to Clipboard!' : 'Copy Formatted Details'}</span>
-                    </button>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClientInboxEmail(formData.email);
+                          setIsClientInboxOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-95 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Open Live Chat Thread</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyInquiry}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-300 font-semibold text-xs hover:bg-slate-800 border border-slate-800 cursor-pointer"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copied ? 'Copied' : 'Copy Formatted Details'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -452,6 +485,13 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
         </div>
 
       </div>
+
+      {/* Client Inbox Dialog */}
+      <ClientInboxModal
+        isOpen={isClientInboxOpen}
+        onClose={() => setIsClientInboxOpen(false)}
+        initialEmail={clientInboxEmail}
+      />
     </section>
   );
 });

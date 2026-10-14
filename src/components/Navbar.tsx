@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Logo } from './Logo';
-import { Menu, X, ArrowUpRight, MessageSquare } from 'lucide-react';
+import { Menu, X, ArrowUpRight, MessageSquare, Lock } from 'lucide-react';
 
 interface NavbarProps {
   onNavigate?: (sectionId: string) => void;
   onOpenContact?: () => void;
+  onOpenControlPanel?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onOpenContact }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onOpenContact, onOpenControlPanel }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
@@ -133,8 +134,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onOpenContact }) => 
             })}
           </nav>
 
-          {/* Zone 3: 1 Primary Action (Let's Talk button) */}
-          <div className="hidden md:flex items-center gap-4 shrink-0">
+          {/* Zone 3: 1 Primary Action (Let's Talk button) + Owner Control Panel */}
+          <div className="hidden md:flex items-center gap-3 shrink-0">
+            {onOpenControlPanel && (
+              <button
+                type="button"
+                onClick={onOpenControlPanel}
+                className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/40 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                title="Control Panel (Owner Access)"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            )}
+
             <a
               href="#contact"
               onClick={handleLetsTalkClick}
