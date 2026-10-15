@@ -1,13 +1,14 @@
 import React from 'react';
-import { Globe, Mic, Video, Palette, Box, Cpu, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Globe, Mic, Video, Palette, Box, Cpu, ArrowUpRight, CheckCircle2, Calculator } from 'lucide-react';
 import { SERVICES_DATA, Service } from '../data/servicesData';
 import { motion } from 'motion/react';
 
 interface ServicesSectionProps {
   onSelectService: (serviceTitle: string) => void;
+  onOpenCalculator?: () => void;
 }
 
-export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectService }) => {
+export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectService, onOpenCalculator }) => {
   const getIcon = (name: Service['iconName']) => {
     switch (name) {
       case 'Globe':
@@ -122,6 +123,28 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectServic
             </motion.div>
           ))}
         </div>
+
+        {/* Project Cost Calculator Entry Point */}
+        {onOpenCalculator && (
+          <div className="mt-14 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-cyan-950/40 border border-purple-500/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 mb-2">
+                <Calculator className="w-3.5 h-3.5" />
+                <span>Instant Cost Estimator</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-white">Need an Instant Custom Project Estimate?</h3>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1">Select your service, customize requirements, and get an automated price range in PKR.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenCalculator}
+              className="px-6 py-3.5 rounded-xl text-xs uppercase tracking-wider font-semibold text-white bg-gradient-to-r from-purple-600 via-purple-500 to-cyan-500 hover:opacity-95 shadow-lg shadow-purple-900/40 shrink-0 cursor-pointer flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+            >
+              <Calculator className="w-4 h-4 text-cyan-200" />
+              <span>Calculate Project Cost</span>
+            </button>
+          </div>
+        )}
 
       </div>
     </section>

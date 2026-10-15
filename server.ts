@@ -17,7 +17,19 @@ const PORT = Number(process.env.PORT) || 3000;
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'moeezimran786';
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Helper to normalize web URLs
+const normalizeWebUrl = (url: any): string | null => {
+  if (!url) return null;
+  const trimmed = String(url).trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
 
 // API: Admin Authentication
 app.post('/api/admin/login', (req, res) => {
@@ -51,31 +63,44 @@ app.post('/api/projects', async (req, res) => {
       tools, keyFeatures, liveUrl, githubUrl 
     } = req.body;
 
-    if (!title || !category || !shortDescription) {
-      return res.status(400).json({ error: 'Missing required project fields: title, category, shortDescription' });
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ error: 'Project Title is required' });
     }
+
+    const cleanTitle = String(title).trim();
+    const cleanCategory = category ? String(category).trim() : 'Websites';
+    const cleanTagline = tagline ? String(tagline).trim() : cleanTitle;
+    const cleanShortDesc = shortDescription && String(shortDescription).trim()
+      ? String(shortDescription).trim()
+      : (cleanTagline || `${cleanTitle} real project showcase`);
+    const cleanFullDesc = fullDescription && String(fullDescription).trim()
+      ? String(fullDescription).trim()
+      : cleanShortDesc;
 
     const saved = await insertOrUpdateProject({
       projectId: projectId || `proj_${Date.now()}`,
-      title: String(title).trim(),
-      tagline: tagline ? String(tagline).trim() : null,
-      category: String(category).trim(),
+      title: cleanTitle,
+      tagline: cleanTagline,
+      category: cleanCategory,
       status: status || 'Live Project',
-      image: image ? String(image).trim() : 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-      shortDescription: String(shortDescription).trim(),
-      fullDescription: fullDescription ? String(fullDescription).trim() : String(shortDescription).trim(),
+      image: image && String(image).trim() 
+        ? String(image).trim() 
+        : 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+      shortDescription: cleanShortDesc,
+      fullDescription: cleanFullDesc,
       clientContext: clientContext ? String(clientContext).trim() : null,
-      tools: Array.isArray(tools) ? tools : ['Web Development', 'UI/UX'],
-      keyFeatures: Array.isArray(keyFeatures) ? keyFeatures : ['Production ready deployment'],
-      liveUrl: liveUrl ? String(liveUrl).trim() : null,
-      githubUrl: githubUrl ? String(githubUrl).trim() : null,
+      tools: Array.isArray(tools) && tools.length > 0 ? tools : ['Web Development', 'Modern UI/UX'],
+      keyFeatures: Array.isArray(keyFeatures) && keyFeatures.length > 0 ? keyFeatures : ['Production ready deployment', 'High speed & responsive design'],
+      liveUrl: normalizeWebUrl(liveUrl),
+      githubUrl: normalizeWebUrl(githubUrl),
       demoType: 'real-project',
     });
 
-    return res.status(201).json({ success: true, project: saved });
+    const allProjects = await getAllProjects();
+    return res.status(201).json({ success: true, project: saved, allProjects });
   } catch (error: any) {
     console.error('Error saving project:', error);
-    return res.status(500).json({ error: 'Failed to save project' });
+    return res.status(500).json({ error: error.message || 'Failed to save project' });
   }
 });
 
@@ -84,7 +109,8 @@ app.delete('/api/projects/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await deleteProjectById(id);
-    return res.json({ success: true });
+    const allProjects = await getAllProjects();
+    return res.json({ success: true, allProjects });
   } catch (error: any) {
     console.error('Error deleting project:', error);
     return res.status(500).json({ error: 'Failed to delete project' });

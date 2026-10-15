@@ -21,8 +21,12 @@ export const ClientInboxModal: React.FC<ClientInboxModalProps> = ({
   onClose,
   initialEmail = '',
 }) => {
-  const [email, setEmail] = useState(initialEmail);
-  const [isEmailSubmitted, setIsEmailSubmitted] = useState(Boolean(initialEmail));
+  const [email, setEmail] = useState(() => {
+    return initialEmail || localStorage.getItem('moeez_client_email') || '';
+  });
+  const [isEmailSubmitted, setIsEmailSubmitted] = useState(() => {
+    return Boolean(initialEmail || localStorage.getItem('moeez_client_email'));
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +37,15 @@ export const ClientInboxModal: React.FC<ClientInboxModalProps> = ({
     if (initialEmail) {
       setEmail(initialEmail);
       setIsEmailSubmitted(true);
+      localStorage.setItem('moeez_client_email', initialEmail);
       fetchThread(initialEmail);
+    } else {
+      const stored = localStorage.getItem('moeez_client_email');
+      if (stored) {
+        setEmail(stored);
+        setIsEmailSubmitted(true);
+        fetchThread(stored);
+      }
     }
   }, [initialEmail]);
 
@@ -66,8 +78,14 @@ export const ClientInboxModal: React.FC<ClientInboxModalProps> = ({
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+    localStorage.setItem('moeez_client_email', email.trim());
     setIsEmailSubmitted(true);
-    fetchThread(email);
+    fetchThread(email.trim());
+  };
+
+  const handleSwitchEmail = () => {
+    setIsEmailSubmitted(false);
+    setMessages([]);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -111,27 +129,36 @@ export const ClientInboxModal: React.FC<ClientInboxModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <span>Client Messages & Inquiries</span>
+                <span>Direct Web Conversation</span>
                 {isEmailSubmitted && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono">
                     {email}
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-slate-400">Direct conversation with Moeez</p>
+              <p className="text-xs text-slate-400">Direct message exchange with Moeez (Owner)</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {isEmailSubmitted && (
-              <button
-                type="button"
-                onClick={() => fetchThread(email)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                title="Refresh messages"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleSwitchEmail}
+                  className="px-2.5 py-1 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  Change Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fetchThread(email)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  title="Refresh messages"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </>
             )}
             <button
               type="button"

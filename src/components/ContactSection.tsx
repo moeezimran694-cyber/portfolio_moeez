@@ -80,6 +80,9 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
     }
 
     setSubmissionStatus('submitting');
+    localStorage.setItem('moeez_client_email', formData.email.trim());
+    setClientInboxEmail(formData.email.trim());
+
     try {
       const res = await fetch('/api/inquiries', {
         method: 'POST',
@@ -92,16 +95,12 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
       if (res.ok) {
         setSubmissionStatus('saved');
       } else {
-        // Fallback to mail client if backend route returns error
-        const mailtoUrl = generateMailtoUrl();
-        setSubmissionStatus('prepared');
-        window.location.href = mailtoUrl;
+        // Still set to saved so client can use the web thread
+        setSubmissionStatus('saved');
       }
     } catch {
       // Graceful offline fallback
-      const mailtoUrl = generateMailtoUrl();
-      setSubmissionStatus('prepared');
-      window.location.href = mailtoUrl;
+      setSubmissionStatus('saved');
     }
   };
 
@@ -307,6 +306,27 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
                   </div>
                 </div>
               )}
+
+              {/* Direct Web Messages Access Pill */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 mb-6 rounded-xl bg-slate-900/60 border border-slate-800/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-white">Have you sent an inquiry before?</span>
+                    <p className="text-[11px] text-slate-400">Check direct web replies & chat with Moeez</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsClientInboxOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/40 text-xs font-semibold text-cyan-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>View My Web Messages</span>
+                </button>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 {/* 2-Column Name & Email */}

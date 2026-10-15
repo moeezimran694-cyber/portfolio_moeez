@@ -44,24 +44,55 @@ export default function App() {
     return PROJECTS_DATA;
   });
 
-  const fetchProjects = useCallback(async () => {
+  const fetchProjects = useCallback(async (updatedList?: Project[]) => {
+    if (updatedList && Array.isArray(updatedList)) {
+      setProjects(updatedList);
+      localStorage.setItem('moeez_real_projects_list', JSON.stringify(updatedList));
+      return;
+    }
+
     try {
       const res = await fetch('/api/projects');
       const data = await res.json();
       if (data.success && Array.isArray(data.projects)) {
-        setProjects(data.projects);
-        localStorage.setItem('moeez_real_projects_list', JSON.stringify(data.projects));
-        return;
+        if (data.projects.length > 0) {
+          setProjects(data.projects);
+          localStorage.setItem('moeez_real_projects_list', JSON.stringify(data.projects));
+          return;
+        } else {
+          // If server returned 0 projects, check if localStorage has previously saved projects to sync
+          const saved = localStorage.getItem('moeez_real_projects_list');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setProjects(parsed);
+                // Background sync to server
+                for (const proj of parsed) {
+                  fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(proj),
+                  }).catch(() => {});
+                }
+                return;
+              }
+            } catch {}
+          }
+          setProjects([]);
+          localStorage.setItem('moeez_real_projects_list', JSON.stringify([]));
+          return;
+        }
       }
     } catch {
-      // fallback
-    }
-    const saved = localStorage.getItem('moeez_real_projects_list');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setProjects(parsed);
-      } catch {}
+      // fallback to local storage
+      const saved = localStorage.getItem('moeez_real_projects_list');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setProjects(parsed);
+        } catch {}
+      }
     }
   }, []);
 

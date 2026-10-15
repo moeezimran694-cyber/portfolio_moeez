@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Logo } from './Logo';
-import { Menu, X, ArrowUpRight, MessageSquare, Lock } from 'lucide-react';
+import { Menu, X, ArrowUpRight, MessageSquare, Lock, Calculator } from 'lucide-react';
 
 interface NavbarProps {
   onNavigate?: (sectionId: string) => void;
   onOpenContact?: () => void;
   onOpenControlPanel?: () => void;
+  onOpenCalculator?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onOpenContact, onOpenControlPanel }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  onNavigate, 
+  onOpenContact, 
+  onOpenControlPanel,
+  onOpenCalculator
+}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
@@ -134,8 +140,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onOpenContact, onOpe
             })}
           </nav>
 
-          {/* Zone 3: 1 Primary Action (Let's Talk button) + Owner Control Panel */}
+          {/* Zone 3: 1 Primary Action (Let's Talk button) + Calculator + Owner Control Panel */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
+            {onOpenCalculator && (
+              <button
+                type="button"
+                onClick={onOpenCalculator}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-cyan-500/40 transition-colors cursor-pointer"
+                title="Calculate Project Cost"
+              >
+                <Calculator className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Cost Calculator</span>
+              </button>
+            )}
+
             {onOpenControlPanel && (
               <button
                 type="button"
