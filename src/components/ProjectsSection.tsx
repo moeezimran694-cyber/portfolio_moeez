@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowUpRight, Eye, ExternalLink, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowUpRight, Eye, ExternalLink, Sparkles, MessageSquare, Play, Video, Image as ImageIcon, Globe } from 'lucide-react';
 import { SERVICE_CATEGORIES, Project } from '../data/projectsData';
 import { ProjectDetailModal } from './ProjectDetailModal';
 import { motion } from 'motion/react';
@@ -165,11 +165,47 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   {/* Scrim Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent opacity-80" />
 
+                  {/* Format Pill (Video / Image / Website) */}
+                  {project.mediaType === 'video' || project.videoUrl ? (
+                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-purple-950/90 border border-purple-500/40 text-[10px] font-semibold text-purple-200 flex items-center gap-1.5 backdrop-blur-sm shadow-md">
+                      <Play className="w-2.5 h-2.5 fill-purple-300" />
+                      <span>Video Ad</span>
+                    </span>
+                  ) : project.mediaType === 'image' ? (
+                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-semibold text-emerald-200 flex items-center gap-1.5 backdrop-blur-sm shadow-md">
+                      <ImageIcon className="w-2.5 h-2.5" />
+                      <span>Design</span>
+                    </span>
+                  ) : (
+                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-[10px] font-semibold text-cyan-200 flex items-center gap-1.5 backdrop-blur-sm shadow-md">
+                      <Globe className="w-2.5 h-2.5" />
+                      <span>Website</span>
+                    </span>
+                  )}
+
+                  {/* Ambient Play Overlay for Video Projects */}
+                  {(project.mediaType === 'video' || project.videoUrl) && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-12 h-12 rounded-full bg-purple-600/90 border border-purple-400/50 text-white flex items-center justify-center shadow-lg shadow-purple-950/80 group-hover:scale-110 transition-transform">
+                        <Play className="w-5 h-5 fill-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Hover Quick Action Overlay */}
                   <div className="absolute inset-0 bg-purple-950/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-900/90 border border-cyan-400/50 shadow-lg">
-                      <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                      View Project Details
+                      {project.mediaType === 'video' || project.videoUrl ? (
+                        <>
+                          <Play className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" />
+                          <span>Watch Video Showcase</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>View Project Details</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -224,8 +260,17 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                         onClick={() => setActiveModalProject(project)}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
                       >
-                        <span>Details</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        {project.mediaType === 'video' || project.videoUrl ? (
+                          <>
+                            <span>Play</span>
+                            <Play className="w-3 h-3 fill-slate-300" />
+                          </>
+                        ) : (
+                          <>
+                            <span>Details</span>
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

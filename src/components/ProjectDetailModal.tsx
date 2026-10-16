@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { X, ExternalLink, Github, MessageSquare, CheckCircle2, Layers, Calendar, Globe } from 'lucide-react';
+import { X, ExternalLink, Github, MessageSquare, CheckCircle2, Layers, Calendar, Globe, Play, Video, Film, Image as ImageIcon } from 'lucide-react';
 import { Project } from '../data/projectsData';
+import { parseVideoUrl } from '../utils/videoUtils';
 
 interface ProjectDetailModalProps {
   project: Project | null;
@@ -100,17 +101,65 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Project Screenshot / Visual Preview */}
-          <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
-            <img
-              src={project.image}
-              alt={project.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
-              }}
-            />
-          </div>
+          {/* Project Media Showcase: Video Player OR Screenshot/Artwork */}
+          {(() => {
+            const parsedVideo = project.videoUrl ? parseVideoUrl(project.videoUrl) : null;
+            if (parsedVideo) {
+              return (
+                <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-purple-500/40 bg-black shadow-2xl">
+                  {parsedVideo.type === 'youtube' || parsedVideo.type === 'vimeo' ? (
+                    <iframe
+                      src={parsedVideo.embedUrl}
+                      title={project.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  ) : (
+                    <video
+                      controls
+                      playsInline
+                      autoPlay
+                      poster={project.image}
+                      className="w-full h-full object-contain bg-black"
+                      src={parsedVideo.embedUrl}
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  )}
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-purple-950/80 border border-purple-500/40 text-[10px] font-semibold text-purple-200 flex items-center gap-1.5 backdrop-blur-sm pointer-events-none">
+                    <Play className="w-2.5 h-2.5 fill-purple-300" />
+                    <span>Video Showcase</span>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 group">
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
+                  }}
+                />
+                {project.mediaType === 'image' && (
+                  <div className="absolute bottom-3 right-3 px-3 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 text-xs text-emerald-300 flex items-center gap-1.5 shadow-lg">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>High-Resolution Graphic Design</span>
+                  </div>
+                )}
+                {project.mediaType === 'website' && project.liveUrl && (
+                  <div className="absolute bottom-3 right-3 px-3 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 text-xs text-cyan-300 flex items-center gap-1.5 shadow-lg">
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Production Web Application</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Project Overview & Details */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

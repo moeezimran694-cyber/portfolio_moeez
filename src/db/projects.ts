@@ -1,6 +1,6 @@
 import { db } from './index.ts';
 import { projects } from './schema.ts';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, or } from 'drizzle-orm';
 
 export interface ProjectDbItem {
   id?: number;
@@ -18,13 +18,15 @@ export interface ProjectDbItem {
   liveUrl?: string | null;
   githubUrl?: string | null;
   demoType: string;
+  mediaType?: string | null;
+  videoUrl?: string | null;
   createdAt?: Date | null;
 }
 
 export async function getAllProjects() {
   try {
     const list = await db.select().from(projects).orderBy(desc(projects.createdAt));
-    return list.map((item) => ({
+    return list.map((item: any) => ({
       id: item.projectId,
       title: item.title,
       tagline: item.tagline || '',
@@ -38,7 +40,9 @@ export async function getAllProjects() {
       keyFeatures: Array.isArray(item.keyFeatures) ? item.keyFeatures : [],
       liveUrl: item.liveUrl || null,
       githubUrl: item.githubUrl || null,
-      demoType: item.demoType,
+      demoType: item.demoType || 'real-project',
+      mediaType: item.mediaType || 'website',
+      videoUrl: item.videoUrl || null,
     }));
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -64,6 +68,9 @@ export async function insertOrUpdateProject(item: ProjectDbItem) {
           keyFeatures: item.keyFeatures,
           liveUrl: item.liveUrl || null,
           githubUrl: item.githubUrl || null,
+          demoType: item.demoType || 'real-project',
+          mediaType: item.mediaType || 'website',
+          videoUrl: item.videoUrl || null,
         })
         .where(eq(projects.projectId, item.projectId))
         .returning();
@@ -83,7 +90,9 @@ export async function insertOrUpdateProject(item: ProjectDbItem) {
         keyFeatures: item.keyFeatures,
         liveUrl: item.liveUrl || null,
         githubUrl: item.githubUrl || null,
-        demoType: 'real-project',
+        demoType: item.demoType || 'real-project',
+        mediaType: item.mediaType || 'website',
+        videoUrl: item.videoUrl || null,
       }).returning();
       return created[0];
     }
@@ -95,10 +104,15 @@ export async function insertOrUpdateProject(item: ProjectDbItem) {
 
 export async function deleteProjectById(projectId: string) {
   try {
-    await db.delete(projects).where(eq(projects.projectId, projectId));
+    const numericId = parseInt(projectId, 10);
+    if (!isNaN(numericId) && numericId > 0) {
+      await db.delete(projects).where(or(eq(projects.projectId, projectId), eq(projects.id, numericId)));
+    } else {
+      await db.delete(projects).where(eq(projects.projectId, projectId));
+    }
     return true;
   } catch (error) {
     console.error('Error deleting project from database:', error);
-    throw new Error('Database delete failed', { cause: error });
+    return false;
   }
 }

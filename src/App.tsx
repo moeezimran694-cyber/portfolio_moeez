@@ -45,9 +45,15 @@ export default function App() {
   });
 
   const fetchProjects = useCallback(async (updatedList?: Project[]) => {
+    let deletedIds: string[] = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem('moeez_deleted_project_ids') || '[]');
+    } catch {}
+
     if (updatedList && Array.isArray(updatedList)) {
-      setProjects(updatedList);
-      localStorage.setItem('moeez_real_projects_list', JSON.stringify(updatedList));
+      const filtered = updatedList.filter((p) => !deletedIds.includes(p.id));
+      setProjects(filtered);
+      localStorage.setItem('moeez_real_projects_list', JSON.stringify(filtered));
       return;
     }
 
@@ -55,34 +61,10 @@ export default function App() {
       const res = await fetch('/api/projects');
       const data = await res.json();
       if (data.success && Array.isArray(data.projects)) {
-        if (data.projects.length > 0) {
-          setProjects(data.projects);
-          localStorage.setItem('moeez_real_projects_list', JSON.stringify(data.projects));
-          return;
-        } else {
-          // If server returned 0 projects, check if localStorage has previously saved projects to sync
-          const saved = localStorage.getItem('moeez_real_projects_list');
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setProjects(parsed);
-                // Background sync to server
-                for (const proj of parsed) {
-                  fetch('/api/projects', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(proj),
-                  }).catch(() => {});
-                }
-                return;
-              }
-            } catch {}
-          }
-          setProjects([]);
-          localStorage.setItem('moeez_real_projects_list', JSON.stringify([]));
-          return;
-        }
+        const cleanProjects = data.projects.filter((p: Project) => !deletedIds.includes(p.id));
+        setProjects(cleanProjects);
+        localStorage.setItem('moeez_real_projects_list', JSON.stringify(cleanProjects));
+        return;
       }
     } catch {
       // fallback to local storage
@@ -90,7 +72,10 @@ export default function App() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setProjects(parsed);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((p: Project) => !deletedIds.includes(p.id));
+            setProjects(filtered);
+          }
         } catch {}
       }
     }

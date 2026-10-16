@@ -49,6 +49,8 @@ export const projects = pgTable('projects', {
   liveUrl: text('live_url'),
   githubUrl: text('github_url'),
   demoType: text('demo_type').default('real-project').notNull(),
+  mediaType: text('media_type').default('website'),
+  videoUrl: text('video_url'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

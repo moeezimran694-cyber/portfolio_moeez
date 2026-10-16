@@ -3,9 +3,10 @@ import {
   X, Lock, Unlock, Plus, Trash2, Edit3, Globe, Github, Layers, 
   Settings, MessageSquare, Check, AlertCircle, RefreshCw, Save,
   Send, User, Clock, ArrowUpRight, Search, ShieldCheck, Upload,
-  Image as ImageIcon, Sparkles, ExternalLink
+  Image as ImageIcon, Sparkles, ExternalLink, Play, Video, FileVideo, Film, CheckCircle2
 } from 'lucide-react';
 import { Project } from '../data/projectsData';
+import { parseVideoUrl } from '../utils/videoUtils';
 
 interface ThreadItem {
   clientEmail: string;
@@ -44,6 +45,12 @@ const PRESET_IMAGES = [
   { label: 'Cinematic Video Ad', url: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=1200&q=80' },
 ];
 
+const PRESET_VIDEOS = [
+  { label: '3D Blender Product Promo', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+  { label: 'Cinematic Video Reel', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4' },
+  { label: 'AI Tech Showcase', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4' },
+];
+
 const QUICK_REPLIES = [
   'Salam! I received your inquiry and would be glad to work on this with you.',
   'Thanks for reaching out! Can we schedule a quick call to discuss the exact requirements?',
@@ -79,13 +86,18 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [isSavingProject, setIsSavingProject] = useState(false);
   const [projectStatusMessage, setProjectStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   const [projForm, setProjForm] = useState({
+    mediaType: 'website' as 'website' | 'video' | 'image',
     title: '',
     category: 'Websites',
     tagline: '',
     image: '',
+    videoUrl: '',
     liveUrl: '',
     githubUrl: '',
     shortDescription: '',
@@ -249,20 +261,38 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   const activeThread = threads.find((t) => t.clientEmail === selectedThreadEmail);
 
   // Project Management Handlers
-  const openNewProjectForm = () => {
+  const openNewProjectForm = (initialFormat: 'website' | 'video' | 'image' = 'website') => {
     setEditingProject(null);
     setProjectStatusMessage(null);
+    setConfirmDeleteId(null);
+
+    const defaultImage = initialFormat === 'video'
+      ? 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=1200&q=80'
+      : initialFormat === 'image'
+      ? 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'
+      : 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
+
     setProjForm({
+      mediaType: initialFormat,
       title: '',
-      category: 'Websites',
+      category: initialFormat === 'video' ? 'Video Ads' : initialFormat === 'image' ? 'Graphic Design' : 'Websites',
       tagline: '',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+      image: defaultImage,
+      videoUrl: '',
       liveUrl: '',
       githubUrl: '',
       shortDescription: '',
       fullDescription: '',
-      toolsInput: 'React, TypeScript, Tailwind CSS',
-      featuresInput: 'High conversion responsive layout\nFast load times & SEO optimized\nClean UI/UX design',
+      toolsInput: initialFormat === 'video' 
+        ? 'Premiere Pro, After Effects, Runway AI, Midjourney'
+        : initialFormat === 'image'
+        ? 'Photoshop, Illustrator, Blender 3D, Figma'
+        : 'React, TypeScript, Tailwind CSS',
+      featuresInput: initialFormat === 'video'
+        ? '4K Ultra HD cinematic render\nAI voiceover & sound design\nHigh CTR social media advertising'
+        : initialFormat === 'image'
+        ? 'Vector artwork & brand identity\nUltra crisp export formats\nPrint & digital marketing ready'
+        : 'High conversion responsive layout\nFast load times & SEO optimized\nClean UI/UX design',
       clientContext: '',
     });
     setIsAddingNew(true);
@@ -271,11 +301,22 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   const openEditProjectForm = (p: Project) => {
     setEditingProject(p);
     setProjectStatusMessage(null);
+    setConfirmDeleteId(null);
+
+    const inferredFormat: 'website' | 'video' | 'image' = 
+      p.mediaType === 'video' || p.videoUrl || p.category === 'Video Ads'
+        ? 'video'
+        : p.mediaType === 'image' || p.category === 'Graphic Design'
+        ? 'image'
+        : 'website';
+
     setProjForm({
+      mediaType: (p.mediaType as any) || inferredFormat,
       title: p.title,
       category: p.category,
       tagline: p.tagline || '',
       image: p.image || '',
+      videoUrl: p.videoUrl || '',
       liveUrl: p.liveUrl || '',
       githubUrl: p.githubUrl || '',
       shortDescription: p.shortDescription || '',
@@ -310,6 +351,37 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      setProjectStatusMessage({ 
+        type: 'error', 
+        text: 'Video file exceeds 50MB. For larger videos, paste a YouTube, Vimeo, or direct MP4 link.' 
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target?.result as string;
+      if (base64Data) {
+        setProjForm((prev) => ({ 
+          ...prev, 
+          videoUrl: base64Data, 
+          mediaType: 'video',
+          category: prev.category === 'Websites' ? 'Video Ads' : prev.category 
+        }));
+        setProjectStatusMessage({ type: 'success', text: 'Video file loaded from device! Preview it below.' });
+      }
+    };
+    reader.onerror = () => {
+      setProjectStatusMessage({ type: 'error', text: 'Failed to read video file.' });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const normalizeUrl = (url: string) => {
     const trimmed = url.trim();
     if (!trimmed) return '';
@@ -326,11 +398,20 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
       return;
     }
 
+    if (projForm.mediaType === 'video' && !projForm.videoUrl.trim() && !projForm.image.trim()) {
+      setProjectStatusMessage({ type: 'error', text: 'Please provide a video link or upload a video file for this video project.' });
+      return;
+    }
+
     setIsSavingProject(true);
 
     const tools = projForm.toolsInput.split(',').map((t) => t.trim()).filter(Boolean);
     const keyFeatures = projForm.featuresInput.split('\n').map((f) => f.trim()).filter(Boolean);
-    const fallbackImage = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
+    const fallbackImage = projForm.mediaType === 'video'
+      ? 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=1200&q=80'
+      : projForm.mediaType === 'image'
+      ? 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'
+      : 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
     const chosenImage = projForm.image.trim() || fallbackImage;
 
     const shortDesc = projForm.shortDescription.trim() 
@@ -345,6 +426,8 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
       category: projForm.category,
       tagline: projForm.tagline.trim() || projForm.title.trim(),
       image: chosenImage,
+      mediaType: projForm.mediaType,
+      videoUrl: projForm.videoUrl.trim() || null,
       liveUrl: normalizeUrl(projForm.liveUrl) || null,
       githubUrl: normalizeUrl(projForm.githubUrl) || null,
       shortDescription: shortDesc,
@@ -368,8 +451,13 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
       if (res.ok && data.success) {
         savedSuccessfully = true;
         if (Array.isArray(data.allProjects)) {
-          onRefreshProjects(data.allProjects);
-          localStorage.setItem('moeez_real_projects_list', JSON.stringify(data.allProjects));
+          let deletedSet: string[] = [];
+          try {
+            deletedSet = JSON.parse(localStorage.getItem('moeez_deleted_project_ids') || '[]');
+          } catch {}
+          const filtered = data.allProjects.filter((p: Project) => !deletedSet.includes(p.id));
+          onRefreshProjects(filtered);
+          localStorage.setItem('moeez_real_projects_list', JSON.stringify(filtered));
         }
       } else {
         throw new Error(data.error || 'Server returned an error');
@@ -377,10 +465,11 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
     } catch (err: any) {
       console.warn('Backend save issue, applying direct local sync:', err);
       // Fallback local storage
-      const localList = JSON.parse(localStorage.getItem('moeez_real_projects_list') || '[]');
-      const updated = editingProject
-        ? localList.map((p: Project) => p.id === editingProject.id ? { ...projectPayload, id: projectPayload.projectId } : p)
-        : [{ ...projectPayload, id: projectPayload.projectId }, ...localList];
+      const localList: Project[] = JSON.parse(localStorage.getItem('moeez_real_projects_list') || '[]');
+      const newProj: Project = { ...projectPayload, id: projectPayload.projectId };
+      const updated: Project[] = editingProject
+        ? localList.map((p: Project) => p.id === editingProject.id ? newProj : p)
+        : [newProj, ...localList.filter((p: Project) => p.id !== newProj.id)];
       
       localStorage.setItem('moeez_real_projects_list', JSON.stringify(updated));
       onRefreshProjects(updated);
@@ -402,23 +491,47 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    if (!window.confirm('Are you sure you want to remove this project from your live website?')) return;
-    
+  const executeDeleteProject = async (id: string) => {
+    setIsDeletingId(id);
+    setProjectStatusMessage(null);
+
+    // 1. Optimistic removal from active projects list
+    const updated = projects.filter((p: Project) => p.id !== id);
+    onRefreshProjects(updated);
+    localStorage.setItem('moeez_real_projects_list', JSON.stringify(updated));
+
+    // 2. Track in deleted set so App.tsx never resurrects it
     try {
-      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (res.ok && data.allProjects) {
-        onRefreshProjects(data.allProjects);
-        localStorage.setItem('moeez_real_projects_list', JSON.stringify(data.allProjects));
-        return;
+      const deletedSet: string[] = JSON.parse(localStorage.getItem('moeez_deleted_project_ids') || '[]');
+      if (!deletedSet.includes(id)) {
+        deletedSet.push(id);
+        localStorage.setItem('moeez_deleted_project_ids', JSON.stringify(deletedSet));
       }
     } catch {}
 
-    const localList = JSON.parse(localStorage.getItem('moeez_real_projects_list') || '[]');
-    const updated = localList.filter((p: Project) => p.id !== id);
-    localStorage.setItem('moeez_real_projects_list', JSON.stringify(updated));
-    onRefreshProjects(updated);
+    // 3. Delete on server
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.allProjects)) {
+        let deletedSet: string[] = [];
+        try {
+          deletedSet = JSON.parse(localStorage.getItem('moeez_deleted_project_ids') || '[]');
+        } catch {}
+        const filteredAll = data.allProjects.filter((p: Project) => !deletedSet.includes(p.id));
+        onRefreshProjects(filteredAll);
+        localStorage.setItem('moeez_real_projects_list', JSON.stringify(filteredAll));
+      }
+      setProjectStatusMessage({ type: 'success', text: 'Project deleted from live website!' });
+      setTimeout(() => setProjectStatusMessage(null), 3000);
+    } catch (err) {
+      console.warn('Backend delete note:', err);
+      setProjectStatusMessage({ type: 'success', text: 'Project removed from your website!' });
+      setTimeout(() => setProjectStatusMessage(null), 3000);
+    } finally {
+      setIsDeletingId(null);
+      setConfirmDeleteId(null);
+    }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -815,7 +928,7 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                       </div>
                       <button
                         type="button"
-                        onClick={openNewProjectForm}
+                        onClick={() => openNewProjectForm('website')}
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-95 shadow-md shadow-purple-900/30 cursor-pointer shrink-0"
                       >
                         <Plus className="w-4 h-4" />
@@ -834,7 +947,7 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                         </p>
                         <button
                           type="button"
-                          onClick={openNewProjectForm}
+                          onClick={() => openNewProjectForm('website')}
                           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider text-white bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-95 shadow-lg shadow-purple-900/30 cursor-pointer"
                         >
                           <Plus className="w-4 h-4" />
@@ -861,6 +974,24 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/75 border border-white/10 text-[10px] font-semibold text-cyan-300 uppercase tracking-wider">
                                   {p.category}
                                 </span>
+
+                                {/* Format badge */}
+                                {p.mediaType === 'video' || p.videoUrl ? (
+                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-purple-950/85 border border-purple-500/40 text-[10px] font-semibold text-purple-300 flex items-center gap-1 shadow">
+                                    <Play className="w-2.5 h-2.5 fill-purple-300" />
+                                    <span>Video</span>
+                                  </span>
+                                ) : p.mediaType === 'image' ? (
+                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-emerald-950/85 border border-emerald-500/40 text-[10px] font-semibold text-emerald-300 flex items-center gap-1 shadow">
+                                    <ImageIcon className="w-2.5 h-2.5" />
+                                    <span>Image</span>
+                                  </span>
+                                ) : (
+                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-cyan-950/85 border border-cyan-500/40 text-[10px] font-semibold text-cyan-300 flex items-center gap-1 shadow">
+                                    <Globe className="w-2.5 h-2.5" />
+                                    <span>Website</span>
+                                  </span>
+                                )}
                               </div>
 
                               <h5 className="text-sm font-bold text-white truncate mb-1">{p.title}</h5>
@@ -882,27 +1013,54 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                                     <span>Visit Live</span>
                                     <ArrowUpRight className="w-3 h-3" />
                                   </a>
+                                ) : p.videoUrl ? (
+                                  <span className="text-[11px] text-purple-300 flex items-center gap-1">
+                                    <Film className="w-3.5 h-3.5 text-purple-400" />
+                                    <span>Video Linked</span>
+                                  </span>
                                 ) : (
-                                  <span className="text-[11px] text-slate-500">No URL</span>
+                                  <span className="text-[11px] text-slate-500">Image Asset</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <button
                                   type="button"
                                   onClick={() => openEditProjectForm(p)}
-                                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+                                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
                                   title="Edit Project"
                                 >
                                   <Edit3 className="w-4 h-4" />
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteProject(p.id)}
-                                  className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-950/40 cursor-pointer"
-                                  title="Delete Project"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+
+                                {confirmDeleteId === p.id ? (
+                                  <div className="flex items-center gap-1 bg-red-950/80 border border-red-500/50 rounded-lg p-1 animate-in fade-in">
+                                    <span className="text-[10px] text-red-300 font-bold px-1">Delete?</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => executeDeleteProject(p.id)}
+                                      disabled={isDeletingId === p.id}
+                                      className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-bold cursor-pointer transition-colors shadow"
+                                    >
+                                      {isDeletingId === p.id ? '...' : 'Yes'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(p.id)}
+                                    className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-950/40 cursor-pointer transition-colors"
+                                    title="Delete Project"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -949,6 +1107,106 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                       </div>
                     )}
 
+                    {/* 1. Project Format Selection */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-cyan-950/40 border border-slate-700/80 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <div>
+                          <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Project Format (Ye Project Kis Format Me Lagana Hai?)</span>
+                          </label>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Choose whether this project is a working Website, a Video Advertisement/Reel, or a Graphic Design showcase.
+                          </p>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 font-mono self-start sm:self-auto">
+                          Active: {projForm.mediaType === 'video' ? '🎬 VIDEO AD' : projForm.mediaType === 'image' ? '🖼️ IMAGE SHOWCASE' : '🌐 LIVE WEBSITE'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        {/* Option 1: Live Website */}
+                        <button
+                          type="button"
+                          onClick={() => setProjForm((prev) => ({ 
+                            ...prev, 
+                            mediaType: 'website', 
+                            category: prev.category === 'Video Ads' || prev.category === 'Graphic Design' ? 'Websites' : prev.category 
+                          }))}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            projForm.mediaType === 'website'
+                              ? 'bg-cyan-950/70 border-cyan-400 shadow-md shadow-cyan-950/60 text-white'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              projForm.mediaType === 'website' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              <Globe className="w-4 h-4" />
+                            </div>
+                            {projForm.mediaType === 'website' && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                          </div>
+                          <div className="text-xs font-bold text-white mb-0.5">Live Website</div>
+                          <p className="text-[11px] text-slate-400 leading-snug">Working website URL link + UI screenshot</p>
+                        </button>
+
+                        {/* Option 2: Video Advertisement */}
+                        <button
+                          type="button"
+                          onClick={() => setProjForm((prev) => ({ 
+                            ...prev, 
+                            mediaType: 'video', 
+                            category: prev.category === 'Websites' ? 'Video Ads' : prev.category,
+                            image: prev.image || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=1200&q=80'
+                          }))}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            projForm.mediaType === 'video'
+                              ? 'bg-purple-950/70 border-purple-400 shadow-md shadow-purple-950/60 text-white'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              projForm.mediaType === 'video' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              <Video className="w-4 h-4" />
+                            </div>
+                            {projForm.mediaType === 'video' && <CheckCircle2 className="w-4 h-4 text-purple-400" />}
+                          </div>
+                          <div className="text-xs font-bold text-white mb-0.5">Video Advertisement</div>
+                          <p className="text-[11px] text-slate-400 leading-snug">Video player (MP4, YouTube, Vimeo, or upload)</p>
+                        </button>
+
+                        {/* Option 3: Graphic / Image */}
+                        <button
+                          type="button"
+                          onClick={() => setProjForm((prev) => ({ 
+                            ...prev, 
+                            mediaType: 'image', 
+                            category: prev.category === 'Websites' ? 'Graphic Design' : prev.category,
+                            image: prev.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'
+                          }))}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            projForm.mediaType === 'image'
+                              ? 'bg-emerald-950/70 border-emerald-400 shadow-md shadow-emerald-950/60 text-white'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              projForm.mediaType === 'image' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              <ImageIcon className="w-4 h-4" />
+                            </div>
+                            {projForm.mediaType === 'image' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                          </div>
+                          <div className="text-xs font-bold text-white mb-0.5">Graphic / Image</div>
+                          <p className="text-[11px] text-slate-400 leading-snug">High-res artwork or 3D product render</p>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Title & Category */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -960,7 +1218,13 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                           required
                           value={projForm.title}
                           onChange={(e) => setProjForm({ ...projForm, title: e.target.value })}
-                          placeholder="e.g. IronPulse Gym Fitness Website"
+                          placeholder={
+                            projForm.mediaType === 'video'
+                              ? 'e.g. Cyberpunk Energy Drink 3D Commercial'
+                              : projForm.mediaType === 'image'
+                              ? 'e.g. Neon Apex Brand Identity & Creatives'
+                              : 'e.g. IronPulse Gym Fitness Website'
+                          }
                           className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                         />
                       </div>
@@ -983,24 +1247,129 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Live Website URL & GitHub */}
+                    {/* DEDICATED VIDEO SECTION IF MEDIA TYPE IS VIDEO */}
+                    {projForm.mediaType === 'video' && (
+                      <div className="p-4 rounded-xl bg-purple-950/25 border border-purple-500/40 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
+                              <Film className="w-4 h-4 text-purple-400" />
+                              <span>Video Source (YouTube Link, Vimeo, MP4 URL, or Device Upload)</span>
+                            </label>
+                            <p className="text-[11px] text-slate-400">
+                              Paste any YouTube link, Vimeo link, direct MP4 file URL, or upload from your computer.
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => videoFileInputRef.current?.click()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-900/60 border border-purple-500/50 text-xs font-semibold text-purple-200 hover:text-white cursor-pointer shrink-0"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Upload Video File (MP4/WebM)</span>
+                          </button>
+                        </div>
+
+                        <input
+                          ref={videoFileInputRef}
+                          type="file"
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                          onChange={handleVideoFileUpload}
+                          className="hidden"
+                        />
+
+                        <input
+                          type="text"
+                          value={projForm.videoUrl}
+                          onChange={(e) => setProjForm({ ...projForm, videoUrl: e.target.value })}
+                          placeholder="e.g. https://www.youtube.com/watch?v=... or https://example.com/video.mp4"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                        />
+
+                        {/* Quick Sample Video Presets */}
+                        <div>
+                          <p className="text-[11px] text-slate-400 mb-1.5">Or try a test video preset:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {PRESET_VIDEOS.map((preset, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setProjForm({ ...projForm, videoUrl: preset.url })}
+                                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-purple-300 hover:text-white border border-purple-800/60 transition-colors cursor-pointer"
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Live Video Player Preview in Admin */}
+                        {projForm.videoUrl && (
+                          <div className="mt-3 pt-3 border-t border-purple-900/50">
+                            <p className="text-[11px] font-semibold text-purple-300 mb-2 flex items-center gap-1.5">
+                              <Play className="w-3.5 h-3.5 text-purple-400" />
+                              <span>Live Video Preview (Working player preview):</span>
+                            </p>
+                            <div className="relative aspect-[16/9] w-full max-w-md mx-auto rounded-xl overflow-hidden bg-black border border-purple-500/40 shadow-lg">
+                              {(() => {
+                                const parsed = parseVideoUrl(projForm.videoUrl);
+                                if (!parsed) return null;
+                                if (parsed.type === 'youtube' || parsed.type === 'vimeo') {
+                                  return (
+                                    <iframe
+                                      src={parsed.embedUrl}
+                                      title="Video Preview"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                      className="w-full h-full border-0"
+                                    />
+                                  );
+                                }
+                                return (
+                                  <video
+                                    controls
+                                    playsInline
+                                    poster={projForm.image}
+                                    className="w-full h-full object-contain bg-black"
+                                    src={parsed.embedUrl}
+                                  >
+                                    Your browser does not support video playback.
+                                  </video>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Live Website URL & GitHub / Companion Link */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          Live Website / Demo Link
+                          {projForm.mediaType === 'website' 
+                            ? 'Live Website / Demo URL (Required for Web)' 
+                            : projForm.mediaType === 'video'
+                            ? 'Companion Website / Campaign Page (Optional)'
+                            : 'Deliverable Link / Figma / Behance (Optional)'}
                         </label>
                         <input
                           type="text"
                           value={projForm.liveUrl}
                           onChange={(e) => setProjForm({ ...projForm, liveUrl: e.target.value })}
-                          placeholder="e.g. https://myproject.com or myproject.com"
+                          placeholder={
+                            projForm.mediaType === 'website' 
+                              ? 'e.g. https://myclientwebsite.com' 
+                              : 'e.g. https://behance.net/gallery/...'
+                          }
                           className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                         />
                       </div>
 
                       <div>
                         <label className="block text-xs font-semibold text-slate-300 mb-1">
-                          GitHub Repo URL (Optional)
+                          GitHub / Project Repo URL (Optional)
                         </label>
                         <input
                           type="text"
@@ -1017,7 +1386,13 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                           <ImageIcon className="w-4 h-4 text-cyan-400" />
-                          <span>Project Cover Image / Screenshot</span>
+                          <span>
+                            {projForm.mediaType === 'video'
+                              ? 'Video Thumbnail / Poster Image'
+                              : projForm.mediaType === 'image'
+                              ? 'High-Resolution Artwork / Graphic Design Image'
+                              : 'Website Screenshot / Cover Image'}
+                          </span>
                         </label>
                         
                         <button

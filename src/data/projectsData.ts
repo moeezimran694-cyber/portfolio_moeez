@@ -7,12 +7,14 @@ export interface Project {
   image: string;
   shortDescription: string;
   fullDescription: string;
-  clientContext?: string;
+  clientContext?: string | null;
   tools: string[];
   keyFeatures: string[];
   liveUrl?: string | null;
   githubUrl?: string | null;
-  demoType?: 'website' | 'voice-agent' | '3d-product' | 'graphic-design' | 'video-ad' | 'workflow-app' | 'real-project';
+  demoType?: 'website' | 'voice-agent' | '3d-product' | 'graphic-design' | 'video-ad' | 'workflow-app' | 'real-project' | string;
+  mediaType?: 'website' | 'video' | 'image' | string;
+  videoUrl?: string | null;
 }
 
 /**

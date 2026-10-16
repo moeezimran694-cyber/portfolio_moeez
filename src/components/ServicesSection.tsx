@@ -1,6 +1,7 @@
 import React from 'react';
-import { Globe, Mic, Video, Palette, Box, Cpu, ArrowUpRight, CheckCircle2, Calculator } from 'lucide-react';
-import { SERVICES_DATA, Service } from '../data/servicesData';
+import { ArrowUpRight, CheckCircle2, Calculator } from 'lucide-react';
+import { SERVICES_DATA } from '../data/servicesData';
+import { ServiceAnimatedIcon } from './ServiceAnimatedIcons';
 import { motion } from 'motion/react';
 
 interface ServicesSectionProps {
@@ -9,25 +10,6 @@ interface ServicesSectionProps {
 }
 
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectService, onOpenCalculator }) => {
-  const getIcon = (name: Service['iconName']) => {
-    switch (name) {
-      case 'Globe':
-        return <Globe className="w-6 h-6 text-cyan-400" />;
-      case 'Mic':
-        return <Mic className="w-6 h-6 text-purple-400" />;
-      case 'Video':
-        return <Video className="w-6 h-6 text-fuchsia-400" />;
-      case 'Palette':
-        return <Palette className="w-6 h-6 text-pink-400" />;
-      case 'Box':
-        return <Box className="w-6 h-6 text-cyan-300" />;
-      case 'Cpu':
-        return <Cpu className="w-6 h-6 text-purple-300" />;
-      default:
-        return <Globe className="w-6 h-6 text-cyan-400" />;
-    }
-  };
-
   return (
     <section id="services" className="relative py-28 bg-[#030712] overflow-hidden">
       {/* Background ambient lighting - optimized */}
@@ -79,8 +61,8 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onSelectServic
               <div>
                 {/* Top bar with Icon and Editorial Index */}
                 <div className="flex items-center justify-between mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700/60 group-hover:border-cyan-500/50 flex items-center justify-center transition-colors shadow-inner">
-                    {getIcon(service.iconName)}
+                  <div className="w-12 h-12 rounded-xl bg-slate-900/90 border border-slate-700/60 group-hover:border-slate-500/80 group-hover:bg-slate-800/80 flex items-center justify-center transition-all duration-300 shadow-inner">
+                    <ServiceAnimatedIcon serviceId={service.id} iconName={service.iconName} className="w-6 h-6" />
                   </div>
                   <span className="text-sm font-mono font-semibold text-slate-500 group-hover:text-cyan-400 transition-colors">
                     {service.number}
