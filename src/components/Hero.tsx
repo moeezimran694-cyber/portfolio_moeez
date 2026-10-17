@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Layers, ShieldCheck, Zap, Bot } from 'lucide-react';
 import { motion } from 'motion/react';
+import { FloatingToolIcons } from './FloatingToolIcons';
 
 interface HeroProps {
   onExploreServices: () => void;
@@ -10,6 +11,9 @@ interface HeroProps {
 export const Hero: React.FC<HeroProps> = ({ onExploreServices, onViewProjects }) => {
   return (
     <section id="home" className="relative min-h-[85vh] pt-36 pb-24 flex items-center justify-center overflow-hidden">
+      {/* 24/7 Floating Tool Icons: Photoshop, Illustrator, Blender, and AI */}
+      <FloatingToolIcons />
+
       {/* Background ambient lighting glows - optimized pre-computed radial gradients without GPU blur penalty */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] radial-glow-purple" />
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] radial-glow-cyan" />
