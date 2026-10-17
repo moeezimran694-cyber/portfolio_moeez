@@ -15,6 +15,7 @@ import { ScrollProgressBar } from './components/ScrollProgressBar';
 import { ControlPanelModal } from './components/ControlPanelModal';
 import { Project, PROJECTS_DATA } from './data/projectsData';
 import { motion, type Variants } from 'motion/react';
+import { Sparkles } from 'lucide-react';
 
 const sectionContainerVariants: Variants = {
   hidden: { opacity: 0, y: 36 },
@@ -54,10 +55,41 @@ export default function App() {
       const filtered = updatedList.filter((p) => !deletedIds.includes(p.id));
       setProjects(filtered);
       localStorage.setItem('moeez_real_projects_list', JSON.stringify(filtered));
+      // Also persist to server database so other devices immediately see it
+      try {
+        await fetch('/api/projects/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projects: filtered }),
+        });
+      } catch {}
       return;
     }
 
     try {
+      // Check if this device has locally saved projects that need syncing to Cloud SQL
+      let localSaved: Project[] = [];
+      try {
+        const savedStr = localStorage.getItem('moeez_real_projects_list');
+        if (savedStr) {
+          const parsed = JSON.parse(savedStr);
+          if (Array.isArray(parsed)) {
+            localSaved = parsed.filter((p: Project) => p && p.id && !deletedIds.includes(p.id));
+          }
+        }
+      } catch {}
+
+      if (localSaved.length > 0) {
+        try {
+          await fetch('/api/projects/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projects: localSaved }),
+          });
+        } catch {}
+      }
+
+      // Fetch official global projects from Cloud SQL database
       const res = await fetch('/api/projects');
       const data = await res.json();
       if (data.success && Array.isArray(data.projects)) {
@@ -67,7 +99,7 @@ export default function App() {
         return;
       }
     } catch {
-      // fallback to local storage
+      // Fallback to local storage if offline
       const saved = localStorage.getItem('moeez_real_projects_list');
       if (saved) {
         try {
@@ -204,6 +236,36 @@ export default function App() {
         projects={projects}
         onRefreshProjects={fetchProjects}
       />
+
+      {/* Small Persistent Circular 'Get Started' Action Button */}
+      <div className="fixed bottom-6 right-6 z-40 flex items-center group">
+        {/* Sleek Tooltip appearing on hover */}
+        <div 
+          className="mr-3 px-3 py-1.5 rounded-xl bg-[#090d1a]/95 border border-slate-700/80 text-xs font-semibold text-white shadow-xl backdrop-blur-md opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap hidden sm:flex items-center gap-1.5"
+        >
+          <span>Get Started</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => scrollToSection('contact')}
+          className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-cyan-400 p-[1.5px] shadow-[0_4px_20px_rgba(147,51,234,0.45),0_0_15px_rgba(6,182,255,0.25)] hover:shadow-[0_6px_28px_rgba(147,51,234,0.65),0_0_22px_rgba(6,182,255,0.45)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          aria-label="Get Started - Contact Moeez"
+          title="Get Started"
+        >
+          {/* Subtle breathing radar ring */}
+          <span className="absolute -inset-1 rounded-full bg-cyan-400/25 animate-ping opacity-60 pointer-events-none" />
+
+          {/* Inner circular surface */}
+          <div className="w-full h-full rounded-full bg-[#0a0f1d] hover:bg-transparent transition-colors duration-300 flex flex-col items-center justify-center text-white">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 group-hover:text-white transition-colors" />
+            <span className="text-[9px] font-bold tracking-tight text-white/90 group-hover:text-white mt-0.5 leading-none">
+              Start
+            </span>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }

@@ -147,11 +147,17 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 transition={{ duration: 0.45, delay: (index % 3) * 0.08, ease: [0.16, 1, 0.3, 1] }}
                 className="group relative flex flex-col justify-between rounded-2xl bg-[#0a0f1d] border border-slate-800/80 hover:border-cyan-500/40 overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.7)] hover:shadow-[0_20px_40px_-10px_rgba(6,182,255,0.15)] will-change-transform"
               >
-                {/* Top Image Container */}
+                {/* Top Image Container: Preserves original image size and aspect ratio without cropping */}
                 <div 
-                  className="relative aspect-[4/3] w-full overflow-hidden bg-slate-950 cursor-pointer"
+                  className="relative h-64 sm:h-72 w-full overflow-hidden bg-slate-950 flex items-center justify-center cursor-pointer p-3"
                   onClick={() => setActiveModalProject(project)}
                 >
+                  {/* Subtle ambient blur of image for cohesive dark container */}
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center blur-xl opacity-25 scale-110 pointer-events-none"
+                    style={{ backgroundImage: `url(${project.image})` }}
+                  />
+
                   <img
                     src={project.image}
                     alt={project.title}
@@ -159,11 +165,11 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
                     }}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-105 rounded-lg shadow-md"
                   />
 
                   {/* Scrim Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent opacity-60 pointer-events-none" />
 
                   {/* Format Pill (Video / Image / Website) */}
                   {project.mediaType === 'video' || project.videoUrl ? (

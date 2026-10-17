@@ -106,6 +106,46 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
+// API: Batch Sync Projects (Persists local device projects to Cloud SQL so every user/device sees them)
+app.post('/api/projects/sync', async (req, res) => {
+  try {
+    const { projects: incomingProjects } = req.body;
+    if (Array.isArray(incomingProjects) && incomingProjects.length > 0) {
+      for (const p of incomingProjects) {
+        if (!p || !p.title || !String(p.title).trim()) continue;
+        const cleanTitle = String(p.title).trim();
+        const pId = p.projectId || p.id || `proj_${Date.now()}`;
+        await insertOrUpdateProject({
+          projectId: pId,
+          title: cleanTitle,
+          tagline: p.tagline ? String(p.tagline).trim() : cleanTitle,
+          category: p.category ? String(p.category).trim() : 'Websites',
+          status: p.status || 'Live Project',
+          image: p.image && String(p.image).trim() 
+            ? String(p.image).trim() 
+            : 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+          shortDescription: p.shortDescription ? String(p.shortDescription).trim() : `${cleanTitle} project showcase`,
+          fullDescription: p.fullDescription ? String(p.fullDescription).trim() : `${cleanTitle} project showcase`,
+          clientContext: p.clientContext ? String(p.clientContext).trim() : null,
+          tools: Array.isArray(p.tools) && p.tools.length > 0 ? p.tools : ['Web Development', 'Modern UI/UX'],
+          keyFeatures: Array.isArray(p.keyFeatures) && p.keyFeatures.length > 0 ? p.keyFeatures : ['Production ready deployment', 'High speed & responsive design'],
+          liveUrl: normalizeWebUrl(p.liveUrl),
+          githubUrl: normalizeWebUrl(p.githubUrl),
+          demoType: p.mediaType === 'video' ? 'video-ad' : p.mediaType === 'image' ? 'graphic-design' : (p.demoType || 'real-project'),
+          mediaType: p.mediaType || 'website',
+          videoUrl: p.videoUrl && String(p.videoUrl).trim() ? String(p.videoUrl).trim() : null,
+        });
+      }
+    }
+    const allProjects = await getAllProjects();
+    return res.json({ success: true, allProjects, projects: allProjects });
+  } catch (error: any) {
+    console.error('Error syncing projects:', error);
+    const fallback = await getAllProjects().catch(() => []);
+    return res.json({ success: true, allProjects: fallback, projects: fallback });
+  }
+});
+
 // API: Delete Project
 app.delete('/api/projects/:id', async (req, res) => {
   try {

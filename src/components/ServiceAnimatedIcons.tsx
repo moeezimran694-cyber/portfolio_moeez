@@ -26,7 +26,7 @@ export const NeuralNetworkIcon: React.FC<AnimatedIconProps> = ({ className = 'w-
             }
             @keyframes node-breathe {
               0%, 100% { transform: scale(1); opacity: 0.85; }
-              50% { transform: scale(1.25); opacity: 1; filter: drop-shadow(0 0 2px #fff); }
+              50% { transform: scale(1.2); opacity: 1; }
             }
             .synapse-line {
               stroke-dasharray: 4 2;

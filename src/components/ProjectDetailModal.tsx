@@ -136,11 +136,17 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
             }
 
             return (
-              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 group">
+              <div className="relative w-full min-h-[300px] max-h-[75vh] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center p-3 group">
+                {/* Ambient glow matching the image */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center blur-2xl opacity-25 scale-110 pointer-events-none"
+                  style={{ backgroundImage: `url(${project.image})` }}
+                />
+
                 <img
                   src={project.image}
                   alt={project.title}
-                  className="w-full h-full object-cover"
+                  className="relative z-10 max-w-full max-h-[72vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
                   }}

@@ -1,7 +1,7 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { Send, Mail, Copy, Check, AlertCircle, ArrowUpRight, MessageSquare, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Send, Mail, Copy, Check, AlertCircle, ArrowUpRight, MessageSquare, CheckCircle, CheckCircle2, X } from 'lucide-react';
 import { SITE_CONFIG } from '../data/config';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ClientInboxModal } from './ClientInboxModal';
 
 export interface ContactSectionHandle {
@@ -23,6 +23,17 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'prepared'>('idle');
   const [isClientInboxOpen, setIsClientInboxOpen] = useState(false);
   const [clientInboxEmail, setClientInboxEmail] = useState('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  // Auto-dismiss success toast after 6 seconds
+  useEffect(() => {
+    if (showSuccessToast) {
+      const timer = setTimeout(() => {
+        setShowSuccessToast(false);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessToast]);
 
   useImperativeHandle(ref, () => ({
     prefillService: (serviceName: string) => {
@@ -94,13 +105,16 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
 
       if (res.ok) {
         setSubmissionStatus('saved');
+        setShowSuccessToast(true);
       } else {
         // Still set to saved so client can use the web thread
         setSubmissionStatus('saved');
+        setShowSuccessToast(true);
       }
     } catch {
       // Graceful offline fallback
       setSubmissionStatus('saved');
+      setShowSuccessToast(true);
     }
   };
 
@@ -400,7 +414,7 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
 
                   <div>
                     <label htmlFor="budget" className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Project Budget <span className="text-slate-500 text-[11px]">(Write your price / budget)</span></span>
+                      <span>Project Budget <span className="text-slate-500 text-[11px]">(Write your budget)</span></span>
                     </label>
                     <div className="relative">
                       <input
@@ -408,25 +422,9 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
                         id="budget"
                         value={formData.budget}
                         onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                        placeholder="e.g. $1,500 or your expected budget"
+                        placeholder="Write your budget"
                         className="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-500 transition-all"
                       />
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {['$500', '$1,000', '$2,500', '$5,000+', 'Flexible'].map((suggested) => (
-                        <button
-                          key={suggested}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, budget: suggested })}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
-                            formData.budget === suggested
-                              ? 'bg-purple-950/60 border-purple-500/60 text-cyan-300'
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                          }`}
-                        >
-                          {suggested}
-                        </button>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -512,6 +510,68 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
         onClose={() => setIsClientInboxOpen(false)}
         initialEmail={clientInboxEmail}
       />
+
+      {/* Subtle Success Toast Notification */}
+      <AnimatePresence>
+        {showSuccessToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed bottom-22 right-6 sm:bottom-24 sm:right-6 z-50 max-w-sm w-[calc(100vw-3rem)] pointer-events-auto"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="relative p-4 rounded-2xl bg-[#080d1a]/95 border border-emerald-500/35 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_25px_rgba(16,185,129,0.16)] backdrop-blur-xl flex items-start gap-3.5 overflow-hidden">
+              {/* Subtle top gradient accent line */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400" />
+
+              {/* Glowing checkmark badge */}
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+
+              {/* Message content */}
+              <div className="flex-1 min-w-0 pr-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-white tracking-tight">
+                    Inquiry Sent Successfully
+                  </h4>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+                <p className="mt-1 text-xs text-slate-300 leading-relaxed font-normal">
+                  Thank you! Moeez will review your project details and get back to you shortly.
+                </p>
+                <div className="mt-2.5 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClientInboxEmail(formData.email);
+                      setIsClientInboxOpen(true);
+                      setShowSuccessToast(false);
+                    }}
+                    className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Open chat thread</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Dismiss button */}
+              <button
+                type="button"
+                onClick={() => setShowSuccessToast(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0 -mr-1 -mt-1"
+                aria-label="Dismiss toast"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 });

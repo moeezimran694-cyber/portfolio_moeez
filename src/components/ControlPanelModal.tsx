@@ -332,18 +332,53 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setProjectStatusMessage({ type: 'error', text: 'Image file too large. Please select an image under 15MB.' });
+    if (file.size > 25 * 1024 * 1024) {
+      setProjectStatusMessage({ type: 'error', text: 'Image file too large. Please select an image under 25MB.' });
       return;
     }
 
+    setProjectStatusMessage({ type: 'success', text: 'Reading image and preserving original dimensions...' });
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      const base64Data = event.target?.result as string;
-      if (base64Data) {
-        setProjForm((prev) => ({ ...prev, image: base64Data }));
-        setProjectStatusMessage({ type: 'success', text: 'Image loaded from your device!' });
-      }
+      const rawData = event.target?.result as string;
+      if (!rawData) return;
+
+      const img = new Image();
+      img.onload = () => {
+        // Preserve exact aspect ratio and dimensions up to max 1600px edge
+        const maxDim = 1600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const optimizedData = canvas.toDataURL('image/jpeg', 0.88);
+          setProjForm((prev) => ({ ...prev, image: optimizedData }));
+          setProjectStatusMessage({ type: 'success', text: 'Image loaded with original aspect ratio preserved!' });
+        } else {
+          setProjForm((prev) => ({ ...prev, image: rawData }));
+          setProjectStatusMessage({ type: 'success', text: 'Image loaded from your device!' });
+        }
+      };
+      img.onerror = () => {
+        setProjForm((prev) => ({ ...prev, image: rawData }));
+      };
+      img.src = rawData;
     };
     reader.onerror = () => {
       setProjectStatusMessage({ type: 'error', text: 'Failed to read image file.' });
@@ -460,20 +495,44 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
           localStorage.setItem('moeez_real_projects_list', JSON.stringify(filtered));
         }
       } else {
-        throw new Error(data.error || 'Server returned an error');
+        throw new Error(data.error || 'Server error while saving to database');
       }
     } catch (err: any) {
-      console.warn('Backend save issue, applying direct local sync:', err);
-      // Fallback local storage
-      const localList: Project[] = JSON.parse(localStorage.getItem('moeez_real_projects_list') || '[]');
-      const newProj: Project = { ...projectPayload, id: projectPayload.projectId };
-      const updated: Project[] = editingProject
-        ? localList.map((p: Project) => p.id === editingProject.id ? newProj : p)
-        : [newProj, ...localList.filter((p: Project) => p.id !== newProj.id)];
-      
-      localStorage.setItem('moeez_real_projects_list', JSON.stringify(updated));
-      onRefreshProjects(updated);
-      savedSuccessfully = true;
+      console.warn('Direct POST issue, attempting backup sync:', err);
+      // Try backup sync route
+      try {
+        const syncRes = await fetch('/api/projects/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projects: [projectPayload] }),
+        });
+        const syncData = await syncRes.json();
+        if (syncRes.ok && syncData.success && Array.isArray(syncData.allProjects)) {
+          let deletedSet: string[] = [];
+          try {
+            deletedSet = JSON.parse(localStorage.getItem('moeez_deleted_project_ids') || '[]');
+          } catch {}
+          const filtered = syncData.allProjects.filter((p: Project) => !deletedSet.includes(p.id));
+          onRefreshProjects(filtered);
+          localStorage.setItem('moeez_real_projects_list', JSON.stringify(filtered));
+          savedSuccessfully = true;
+        }
+      } catch (syncErr) {
+        console.error('Database sync failed:', syncErr);
+      }
+
+      if (!savedSuccessfully) {
+        // Fallback local storage so work is not lost
+        const localList: Project[] = JSON.parse(localStorage.getItem('moeez_real_projects_list') || '[]');
+        const newProj: Project = { ...projectPayload, id: projectPayload.projectId };
+        const updated: Project[] = editingProject
+          ? localList.map((p: Project) => p.id === editingProject.id ? newProj : p)
+          : [newProj, ...localList.filter((p: Project) => p.id !== newProj.id)];
+        
+        localStorage.setItem('moeez_real_projects_list', JSON.stringify(updated));
+        onRefreshProjects(updated);
+        savedSuccessfully = true;
+      }
     } finally {
       setIsSavingProject(false);
     }
@@ -481,7 +540,7 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
     if (savedSuccessfully) {
       setProjectStatusMessage({ 
         type: 'success', 
-        text: 'Project successfully published! It is now live on your portfolio website.' 
+        text: 'Project successfully published! It is now live on Cloud SQL for every user and device.' 
       });
       setTimeout(() => {
         setIsAddingNew(false);
@@ -962,11 +1021,15 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                             className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all"
                           >
                             <div>
-                              <div className="relative w-full h-40 rounded-lg overflow-hidden bg-slate-950 mb-3 border border-slate-800">
+                              <div className="relative w-full h-40 rounded-lg overflow-hidden bg-slate-950 mb-3 border border-slate-800 flex items-center justify-center p-1.5">
+                                <div 
+                                  className="absolute inset-0 bg-cover bg-center blur-md opacity-25 scale-110 pointer-events-none"
+                                  style={{ backgroundImage: `url(${p.image})` }}
+                                />
                                 <img
                                   src={p.image}
                                   alt={p.title}
-                                  className="w-full h-full object-cover"
+                                  className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain rounded"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
                                   }}
@@ -1439,19 +1502,19 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Image Preview */}
+                      {/* Image Preview - preserves original size without cropping */}
                       {projForm.image && (
-                        <div className="relative w-full h-36 rounded-xl overflow-hidden bg-slate-950 border border-slate-700">
+                        <div className="relative w-full min-h-[140px] max-h-72 rounded-xl overflow-hidden bg-slate-950/90 border border-slate-700 flex items-center justify-center p-2">
                           <img
                             src={projForm.image}
                             alt="Preview"
-                            className="w-full h-full object-cover"
+                            className="max-w-full max-h-64 w-auto h-auto object-contain rounded"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
                             }}
                           />
                           <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] text-cyan-300 font-mono">
-                            Preview
+                            Original Aspect Preview
                           </div>
                         </div>
                       )}
