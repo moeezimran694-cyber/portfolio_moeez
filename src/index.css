@@ -2,7 +2,7 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 
   body {
@@ -21,7 +21,44 @@
   }
 }
 
-/* Optimized, lightweight radial glows (no heavy GPU blur-3xl penalty) */
+/* Lenis Smooth Scrolling Core CSS */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* 3D Perspective Utilities for Project Cards */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Text Clipping & Masking Utilities */
+.clip-text-reveal {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+/* Optimized, lightweight radial glows (no heavy GPU blur penalty) */
 .radial-glow-purple {
   background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 45%, transparent 70%);
   pointer-events: none;

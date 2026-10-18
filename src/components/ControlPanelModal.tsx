@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Project } from '../data/projectsData';
 import { parseVideoUrl } from '../utils/videoUtils';
+import { getAllStoredThreads, getStoredThreadByEmail, saveStoredMessage } from '../data/inboxData';
 
 interface ThreadItem {
   clientEmail: string;
@@ -153,32 +154,51 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   }, [isAuthenticated]);
 
   const fetchThreads = async () => {
+    // 1. Immediately load stored threads (real data available offline or on Vercel)
+    const stored = getAllStoredThreads();
+    if (stored && Array.isArray(stored) && stored.length > 0) {
+      setThreads(stored as ThreadItem[]);
+      if (!selectedThreadEmail) {
+        setSelectedThreadEmail(stored[0].clientEmail);
+      }
+    }
+
     setLoadingThreads(true);
     try {
       const res = await fetch('/api/inbox/threads');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.threads)) {
-        setThreads(data.threads);
-        if (data.threads.length > 0 && !selectedThreadEmail) {
-          setSelectedThreadEmail(data.threads[0].clientEmail);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.threads)) {
+          setThreads(data.threads);
+          if (data.threads.length > 0 && !selectedThreadEmail) {
+            setSelectedThreadEmail(data.threads[0].clientEmail);
+          }
         }
       }
-    } catch (e) {
-      console.error('Failed to fetch threads:', e);
+    } catch {
+      // Gracefully falls back to stored real threads
     } finally {
       setLoadingThreads(false);
     }
   };
 
   const fetchThreadMessages = async (email: string) => {
+    // 1. Immediately load stored messages
+    const storedThread = getStoredThreadByEmail(email);
+    if (storedThread && Array.isArray(storedThread.messages)) {
+      setThreadMessages(storedThread.messages);
+    }
+
     try {
       const res = await fetch(`/api/inbox/thread/${encodeURIComponent(email)}`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.messages)) {
-        setThreadMessages(data.messages);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.messages)) {
+          setThreadMessages(data.messages);
+        }
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Stored messages already loaded
     }
   };
 
@@ -189,8 +209,25 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
     const currentThread = threads.find((t) => t.clientEmail === selectedThreadEmail);
     setSendingReply(true);
 
+    // 1. Immediately store reply locally and dispatch event
+    const savedMsg = saveStoredMessage(
+      selectedThreadEmail,
+      currentThread?.clientName || 'Client',
+      'admin',
+      textToSend,
+      currentThread?.inquiryId
+    );
+
+    setThreadMessages((prev) => [...prev, savedMsg]);
+    if (!customMessage) setAdminReplyText('');
+
+    // Update local threads list immediately
+    const updatedStored = getAllStoredThreads();
+    setThreads(updatedStored as ThreadItem[]);
+
+    // 2. Also send to server API in background
     try {
-      const res = await fetch('/api/inbox/reply', {
+      await fetch('/api/inbox/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -200,14 +237,8 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
           inquiryId: currentThread?.inquiryId,
         }),
       });
-      const data = await res.json();
-      if (data.success && data.message) {
-        setThreadMessages((prev) => [...prev, data.message]);
-        if (!customMessage) setAdminReplyText('');
-        fetchThreads(); // refresh order
-      }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Message already stored in Layer 1
     } finally {
       setSendingReply(false);
     }
@@ -611,7 +642,10 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+      data-lenis-prevent
+    >
       <div className="relative w-full max-w-6xl bg-[#080d19] border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto h-[92vh] flex flex-col">
         
         {/* Top Header */}

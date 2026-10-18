@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     // High-performance IntersectionObserver for active section (zero layout thrashing)
-    const sections = ['home', 'services', 'projects', 'about', 'contact'];
+    const sections = ['home', 'services', 'projects', 'testimonials', 'about', 'contact'];
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -66,6 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Home', id: 'home' },
     { label: 'Services', id: 'services' },
     { label: 'Projects', id: 'projects' },
+    { label: 'Reviews', id: 'testimonials' },
     { label: 'About', id: 'about' },
     { label: 'Contact', id: 'contact' },
   ];

@@ -3,6 +3,7 @@ import { Send, Mail, Copy, Check, AlertCircle, ArrowUpRight, MessageSquare, Chec
 import { SITE_CONFIG } from '../data/config';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClientInboxModal } from './ClientInboxModal';
+import { saveStoredMessage } from '../data/inboxData';
 
 export interface ContactSectionHandle {
   prefillService: (serviceName: string) => void;
@@ -91,8 +92,12 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
     }
 
     setSubmissionStatus('submitting');
-    localStorage.setItem('moeez_client_email', formData.email.trim());
-    setClientInboxEmail(formData.email.trim());
+    const cleanEmail = formData.email.trim();
+    localStorage.setItem('moeez_client_email', cleanEmail);
+    setClientInboxEmail(cleanEmail);
+
+    // Save message locally so thread is immediately accessible on Vercel or anywhere
+    saveStoredMessage(cleanEmail, formData.fullName.trim(), 'client', formData.details.trim());
 
     try {
       const res = await fetch('/api/inquiries', {
@@ -103,16 +108,10 @@ export const ContactSection = forwardRef<ContactSectionHandle>((props, ref) => {
         body: JSON.stringify(formData),
       });
 
-      if (res.ok) {
-        setSubmissionStatus('saved');
-        setShowSuccessToast(true);
-      } else {
-        // Still set to saved so client can use the web thread
-        setSubmissionStatus('saved');
-        setShowSuccessToast(true);
-      }
+      setSubmissionStatus('saved');
+      setShowSuccessToast(true);
     } catch {
-      // Graceful offline fallback
+      // Graceful offline and Vercel fallback
       setSubmissionStatus('saved');
       setShowSuccessToast(true);
     }

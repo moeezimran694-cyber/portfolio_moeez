@@ -17,6 +17,8 @@ import { ControlPanelModal } from './components/ControlPanelModal';
 import { Project, PROJECTS_DATA } from './data/projectsData';
 import { motion, type Variants } from 'motion/react';
 import { Sparkles } from 'lucide-react';
+import { useSmoothScroll } from './context/SmoothScrollContext';
+import { CustomCursor } from './components/CustomCursor';
 
 const sectionContainerVariants: Variants = {
   hidden: { opacity: 0, y: 36 },
@@ -108,11 +110,18 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+  const { scrollTo, pauseScroll, resumeScroll } = useSmoothScroll();
+
+  useEffect(() => {
+    if (isControlPanelOpen) {
+      pauseScroll();
+    } else {
+      resumeScroll();
     }
+  }, [isControlPanelOpen, pauseScroll, resumeScroll]);
+
+  const scrollToSection = (id: string) => {
+    scrollTo(id, { offset: -70 });
   };
 
   const handleSelectServiceFromCard = (serviceTitle: string) => {
@@ -133,6 +142,9 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#030712] text-slate-100 selection:bg-purple-500/30 selection:text-cyan-200">
+      {/* Subtle desktop ambient cursor glow */}
+      <CustomCursor />
+
       {/* Top thin reading scroll progress bar */}
       <ScrollProgressBar />
 

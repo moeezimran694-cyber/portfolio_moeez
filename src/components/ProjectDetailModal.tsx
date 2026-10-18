@@ -32,6 +32,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-project-title"
+      data-lenis-prevent
     >
       <div 
         className="relative w-full max-w-4xl bg-[#090d1a] border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
