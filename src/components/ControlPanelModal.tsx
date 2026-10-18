@@ -79,6 +79,7 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   const [adminReplyText, setAdminReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [loadingThreads, setLoadingThreads] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [threadSearch, setThreadSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -183,22 +184,44 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
   };
 
   const fetchThreadMessages = async (email: string) => {
-    // 1. Immediately load stored messages
-    const storedThread = getStoredThreadByEmail(email);
-    if (storedThread && Array.isArray(storedThread.messages)) {
-      setThreadMessages(storedThread.messages);
+    if (!email) return;
+    const cleanEmail = email.trim().toLowerCase();
+    setLoadingMessages(true);
+
+    // 1. Check in-memory threads list first for instant display
+    const memThread = threads.find((t) => t.clientEmail.toLowerCase() === cleanEmail);
+    if (memThread && Array.isArray(memThread.messages) && memThread.messages.length > 0) {
+      setThreadMessages(memThread.messages);
+    } else if (memThread && memThread.lastMessage) {
+      // Synthesize initial message from inquiry so it is never empty
+      setThreadMessages([{
+        id: Date.now(),
+        clientEmail: memThread.clientEmail,
+        clientName: memThread.clientName || 'Client',
+        sender: (memThread.lastSender as any) || 'client',
+        message: memThread.lastMessage,
+        createdAt: memThread.lastMessageAt || new Date().toISOString(),
+      }]);
+    } else {
+      // 2. Check stored threads in localStorage
+      const storedThread = getStoredThreadByEmail(cleanEmail);
+      if (storedThread && Array.isArray(storedThread.messages) && storedThread.messages.length > 0) {
+        setThreadMessages(storedThread.messages);
+      }
     }
 
     try {
-      const res = await fetch(`/api/inbox/thread/${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/inbox/thread/${encodeURIComponent(cleanEmail)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.messages)) {
+        if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
           setThreadMessages(data.messages);
         }
       }
     } catch {
       // Stored messages already loaded
+    } finally {
+      setLoadingMessages(false);
     }
   };
 
@@ -812,7 +835,21 @@ export const ControlPanelModal: React.FC<ControlPanelModalProps> = ({
                         return (
                           <div
                             key={t.clientEmail}
-                            onClick={() => setSelectedThreadEmail(t.clientEmail)}
+                            onClick={() => {
+                              setSelectedThreadEmail(t.clientEmail);
+                              if (t.messages && t.messages.length > 0) {
+                                setThreadMessages(t.messages);
+                              } else if (t.lastMessage) {
+                                setThreadMessages([{
+                                  id: Date.now(),
+                                  clientEmail: t.clientEmail,
+                                  clientName: t.clientName || 'Client',
+                                  sender: (t.lastSender as any) || 'client',
+                                  message: t.lastMessage,
+                                  createdAt: t.lastMessageAt || new Date().toISOString(),
+                                }]);
+                              }
+                            }}
                             className={`p-3.5 cursor-pointer transition-colors flex items-start gap-3 ${
                               isSelected
                                 ? 'bg-slate-800/80 border-l-4 border-cyan-400'

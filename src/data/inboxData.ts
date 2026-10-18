@@ -23,6 +23,27 @@ export interface ClientThread {
 
 export const REAL_DEFAULT_THREADS: ClientThread[] = [
   {
+    clientEmail: 'moeezi8e272@gmail.com',
+    clientName: 'Client',
+    company: null,
+    service: 'General Inquiry',
+    budget: 'Flexible',
+    lastMessage: 'h',
+    lastMessageAt: '2026-10-18T11:35:39.518Z',
+    lastSender: 'client',
+    messages: [
+      {
+        id: 10,
+        inquiryId: null,
+        clientEmail: 'moeezi8e272@gmail.com',
+        clientName: 'Client',
+        sender: 'client',
+        message: 'h',
+        createdAt: '2026-10-18T11:35:39.518Z',
+      },
+    ],
+  },
+  {
     clientEmail: 'moeezi396@gmail.com',
     clientName: 'Client',
     company: null,
@@ -120,21 +141,64 @@ export function getAllStoredThreads(): ClientThread[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure default real threads like moeezi396@gmail.com are included if not present
         const map = new Map<string, ClientThread>();
-        REAL_DEFAULT_THREADS.forEach((t) => map.set(t.clientEmail.toLowerCase(), t));
+        REAL_DEFAULT_THREADS.forEach((t) => map.set(t.clientEmail.toLowerCase(), { ...t }));
         parsed.forEach((t) => {
           if (t && t.clientEmail) {
-            map.set(t.clientEmail.toLowerCase(), t);
+            const key = t.clientEmail.toLowerCase();
+            const existing = map.get(key);
+            if (existing) {
+              // Merge messages so they are never lost
+              const msgMap = new Map<number | string, ChatMessage>();
+              existing.messages.forEach((m) => msgMap.set(m.id || m.message, m));
+              if (Array.isArray(t.messages)) {
+                t.messages.forEach((m: ChatMessage) => msgMap.set(m.id || m.message, m));
+              }
+              // If thread had a lastMessage that wasn't in messages
+              if (t.lastMessage && !Array.from(msgMap.values()).some((m) => m.message === t.lastMessage)) {
+                msgMap.set('synth_' + Date.now(), {
+                  id: Date.now(),
+                  clientEmail: t.clientEmail,
+                  clientName: t.clientName || 'Client',
+                  sender: (t.lastSender as any) || 'client',
+                  message: t.lastMessage,
+                  createdAt: t.lastMessageAt || new Date().toISOString(),
+                });
+              }
+              map.set(key, {
+                ...existing,
+                ...t,
+                messages: Array.from(msgMap.values()),
+              });
+            } else {
+              // New thread
+              const messages = Array.isArray(t.messages) && t.messages.length > 0
+                ? t.messages
+                : t.lastMessage
+                  ? [{
+                      id: Date.now(),
+                      clientEmail: t.clientEmail,
+                      clientName: t.clientName || 'Client',
+                      sender: (t.lastSender as any) || 'client',
+                      message: t.lastMessage,
+                      createdAt: t.lastMessageAt || new Date().toISOString(),
+                    }]
+                  : [];
+              map.set(key, { ...t, messages });
+            }
           }
         });
-        return Array.from(map.values());
+        const result = Array.from(map.values());
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+        } catch {}
+        return result;
       }
     }
   } catch (e) {
     console.warn('Error reading stored threads:', e);
   }
-  // Initialize with real default threads
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(REAL_DEFAULT_THREADS));
   } catch {}
@@ -145,9 +209,21 @@ export function getStoredThreadByEmail(email: string): ClientThread | null {
   const normEmail = email.toLowerCase().trim();
   const all = getAllStoredThreads();
   const found = all.find((t) => t.clientEmail.toLowerCase().trim() === normEmail);
-  if (found) return found;
+  if (found) {
+    // If messages array is somehow empty but lastMessage exists, populate it!
+    if (found.messages.length === 0 && found.lastMessage) {
+      found.messages = [{
+        id: Date.now(),
+        clientEmail: found.clientEmail,
+        clientName: found.clientName || 'Client',
+        sender: (found.lastSender as any) || 'client',
+        message: found.lastMessage,
+        createdAt: found.lastMessageAt || new Date().toISOString(),
+      }];
+    }
+    return found;
+  }
 
-  // Check in REAL_DEFAULT_THREADS
   const defaultFound = REAL_DEFAULT_THREADS.find((t) => t.clientEmail.toLowerCase().trim() === normEmail);
   return defaultFound || null;
 }
