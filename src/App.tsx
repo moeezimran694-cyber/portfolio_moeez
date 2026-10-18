@@ -6,6 +6,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
+import { StatsSection } from './components/StatsSection';
 import { ServicesSection } from './components/ServicesSection';
 import { ProjectsSection } from './components/ProjectsSection';
 import { AboutSection } from './components/AboutSection';
@@ -67,32 +68,10 @@ export default function App() {
     }
 
     try {
-      // Check if this device has locally saved projects that need syncing to Cloud SQL
-      let localSaved: Project[] = [];
-      try {
-        const savedStr = localStorage.getItem('moeez_real_projects_list');
-        if (savedStr) {
-          const parsed = JSON.parse(savedStr);
-          if (Array.isArray(parsed)) {
-            localSaved = parsed.filter((p: Project) => p && p.id && !deletedIds.includes(p.id));
-          }
-        }
-      } catch {}
-
-      if (localSaved.length > 0) {
-        try {
-          await fetch('/api/projects/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projects: localSaved }),
-          });
-        } catch {}
-      }
-
       // Fetch official global projects from Cloud SQL database
       const res = await fetch('/api/projects');
       const data = await res.json();
-      if (data.success && Array.isArray(data.projects)) {
+      if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
         const cleanProjects = data.projects.filter((p: Project) => !deletedIds.includes(p.id));
         setProjects(cleanProjects);
         localStorage.setItem('moeez_real_projects_list', JSON.stringify(cleanProjects));
@@ -176,6 +155,16 @@ export default function App() {
             onExploreServices={() => scrollToSection('services')}
             onViewProjects={() => scrollToSection('projects')}
           />
+        </motion.div>
+
+        {/* Credibility & Animated Metrics Stats Section Container */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={sectionContainerVariants}
+        >
+          <StatsSection />
         </motion.div>
 
         {/* Complete Services Section Container */}
